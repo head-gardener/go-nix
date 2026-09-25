@@ -3,11 +3,17 @@ package wire
 import "io"
 
 // EncoderNG writes Nix wire format values to an output stream.
-type EncoderNG struct{ w io.Writer }
+type EncoderNG struct{
+	w   io.Writer
+	ver uint64
+}
 
 // NewEncoderNG returns an EncoderNG that writes to w.
-func NewEncoderNG(w io.Writer) *EncoderNG {
-	return &EncoderNG{w: w}
+func NewEncoderNG(w io.Writer, ver uint64) *EncoderNG {
+	return &EncoderNG{
+		w: w,
+		ver: ver,
+	}
 }
 
 // Uint64 writes a uint64 in Nix wire format.
@@ -43,6 +49,10 @@ func (e *EncoderNG) StringMap(m *map[string]string) error {
 // Writer returns the underlying writer.
 func (e *EncoderNG) Writer() io.Writer {
 	return e.w
+}
+
+func (e *EncoderNG) Version() (uint64) {
+	return e.ver
 }
 
 // Encode encodes a value that implements Marshaler.
