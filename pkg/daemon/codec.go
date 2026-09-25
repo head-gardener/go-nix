@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/nix-community/go-nix/pkg/wire"
@@ -29,63 +28,55 @@ func readAck(dec *wire.Decoder) error {
 	return nil
 }
 
-// ReadPathInfo reads a full PathInfo from the wire (UnkeyedValidPathInfo format).
-// storePath is provided separately (already known by the caller).
-// The version parameter is the negotiated protocol version.
-func ReadPathInfo(dec *wire.Decoder, storePath string, version uint64) (*PathInfo, error) {
-	deriver, err := dec.ReadString()
-	if err != nil {
-		return nil, &ProtocolError{Op: "read path info deriver", Err: err}
+func (info *PathInfo) Convert(c wire.Codec) error {
+	if err := c.String(&info.StorePath); err != nil {
+		return err
 	}
 
-	narHash, err := dec.ReadString()
-	if err != nil {
-		return nil, &ProtocolError{Op: "read path info narHash", Err: err}
+	if err := c.String(&info.Deriver); err != nil {
+		return err
 	}
 
-	references, err := dec.ReadStrings()
-	if err != nil {
-		return nil, &ProtocolError{Op: "read path info references", Err: err}
+	if err := c.String(&info.NarHash); err != nil {
+		return err
 	}
 
-	registrationTime, err := dec.ReadUint64()
-	if err != nil {
-		return nil, &ProtocolError{Op: "read path info registrationTime", Err: err}
+	if err := c.Strings(&info.References); err != nil {
+		return err
 	}
 
-	narSize, err := dec.ReadUint64()
-	if err != nil {
-		return nil, &ProtocolError{Op: "read path info narSize", Err: err}
+	if err := c.Uint64(&info.RegistrationTime); err != nil {
+		return err
 	}
 
-	info := &PathInfo{
-		StorePath:        storePath,
-		Deriver:          deriver,
-		NarHash:          narHash,
-		References:       references,
-		RegistrationTime: registrationTime,
-		NarSize:          narSize,
+	if err := c.Uint64(&info.NarSize); err != nil {
+		return err
 	}
 
 	// Protocol >= 1.16: ultimate, sigs, ca.
-	if version >= ProtoVersionPathInfoMeta {
-		info.Ultimate, err = dec.ReadBool()
-		if err != nil {
-			return nil, &ProtocolError{Op: "read path info ultimate", Err: err}
+	if c.Version() >= ProtoVersionPathInfoMeta {
+		if err := c.Bool(&info.Ultimate); err != nil {
+			return err
 		}
 
-		info.Sigs, err = dec.ReadStrings()
-		if err != nil {
-			return nil, &ProtocolError{Op: "read path info sigs", Err: err}
+		if err := c.Strings(&info.Sigs); err != nil {
+			return err
 		}
 
-		info.CA, err = dec.ReadString()
-		if err != nil {
-			return nil, &ProtocolError{Op: "read path info contentAddress", Err: err}
+		if err := c.String(&info.CA); err != nil {
+			return err
 		}
 	}
 
-	return info, nil
+	return nil
+}
+
+// ReadPathInfo reads a full PathInfo from the wire (UnkeyedValidPathInfo format).
+// The version parameter is the negotiated protocol version.
+func ReadPathInfo(dec *wire.Decoder, version uint64) (*PathInfo, error) {
+	info := PathInfo{}
+	c := wire.NewDecoderNG(dec.Reader(), MaxStringSize, version)
+	return &info, info.Convert(c)
 }
 
 // WritePathInfo writes a PathInfo in ValidPathInfo wire format.
@@ -95,46 +86,44 @@ func WritePathInfo(enc *wire.Encoder, info *PathInfo, version uint64) error {
 		return ErrNilPathInfo
 	}
 
-	if err := enc.WriteString(info.StorePath); err != nil {
+	c := wire.NewEncoderNG(enc.Writer(), version)
+	return info.Convert(c)
+}
+
+func (out *DerivationOutput) Convert(c wire.Codec) error {
+	if err := c.String(&out.Path); err != nil {
 		return err
 	}
 
-	if err := enc.WriteString(info.Deriver); err != nil {
+	if err := c.String(&out.HashAlgorithm); err != nil {
 		return err
 	}
 
-	if err := enc.WriteString(info.NarHash); err != nil {
+	return c.String(&out.Hash)
+}
+
+func (drv *BasicDerivation) Convert(c wire.Codec) error {
+	if err := wire.ConvertMap(c, &drv.Outputs); err != nil {
 		return err
 	}
 
-	if err := enc.WriteStrings(info.References); err != nil {
+	if err := c.Strings(&drv.Inputs); err != nil {
 		return err
 	}
 
-	if err := enc.WriteUint64(info.RegistrationTime); err != nil {
+	if err := c.String(&drv.Platform); err != nil {
 		return err
 	}
 
-	if err := enc.WriteUint64(info.NarSize); err != nil {
+	if err := c.String(&drv.Builder); err != nil {
 		return err
 	}
 
-	// Protocol >= 1.16: ultimate, sigs, ca.
-	if version >= ProtoVersionPathInfoMeta {
-		if err := enc.WriteBool(info.Ultimate); err != nil {
-			return err
-		}
-
-		if err := enc.WriteStrings(info.Sigs); err != nil {
-			return err
-		}
-
-		if err := enc.WriteString(info.CA); err != nil {
-			return err
-		}
+	if err := c.Strings(&drv.Args); err != nil {
+		return err
 	}
 
-	return nil
+	return c.StringMap(&drv.Env)
 }
 
 // WriteBasicDerivation writes a BasicDerivation to the wire.
@@ -146,54 +135,9 @@ func WriteBasicDerivation(enc *wire.Encoder, drv *BasicDerivation) error {
 		return ErrNilDerivation
 	}
 
-	outputNames := make([]string, 0, len(drv.Outputs))
-	for name := range drv.Outputs {
-		outputNames = append(outputNames, name)
-	}
+	c := wire.NewEncoderNG(enc.Writer(), ProtoVersionFeatureExchange)
 
-	sort.Strings(outputNames)
-
-	if err := enc.WriteUint64(uint64(len(outputNames))); err != nil {
-		return err
-	}
-
-	for _, name := range outputNames {
-		out := drv.Outputs[name]
-
-		if err := enc.WriteString(name); err != nil {
-			return err
-		}
-
-		if err := enc.WriteString(out.Path); err != nil {
-			return err
-		}
-
-		if err := enc.WriteString(out.HashAlgorithm); err != nil {
-			return err
-		}
-
-		if err := enc.WriteString(out.Hash); err != nil {
-			return err
-		}
-	}
-
-	if err := enc.WriteStrings(drv.Inputs); err != nil {
-		return err
-	}
-
-	if err := enc.WriteString(drv.Platform); err != nil {
-		return err
-	}
-
-	if err := enc.WriteString(drv.Builder); err != nil {
-		return err
-	}
-
-	if err := enc.WriteStrings(drv.Args); err != nil {
-		return err
-	}
-
-	return enc.WriteStringMap(drv.Env)
+	return drv.Convert(c)
 }
 
 // readOptionalMicroseconds reads an optional<microseconds> from the wire.

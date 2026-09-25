@@ -16,6 +16,7 @@ func TestPathInfoCodec(t *testing.T) {
 
 		var buf bytes.Buffer
 
+		writeTestString(&buf, "/nix/store/xyz-test")           // store path
 		writeTestString(&buf, "/nix/store/abc-foo.drv")        // deriver
 		writeTestString(&buf, "sha256:abcdef1234567890")       // narHash
 		writeTestUint64(&buf, 1)                               // references count
@@ -29,7 +30,7 @@ func TestPathInfoCodec(t *testing.T) {
 
 		dec := wire.NewDecoder(&buf, daemon.MaxStringSize)
 
-		info, err := daemon.ReadPathInfo(dec, "/nix/store/xyz-test", daemon.ProtocolVersion)
+		info, err := daemon.ReadPathInfo(dec, daemon.ProtocolVersion)
 		rq.NoError(err)
 		rq.Equal("/nix/store/xyz-test", info.StorePath)
 		rq.Equal("/nix/store/abc-foo.drv", info.Deriver)
@@ -62,16 +63,9 @@ func TestPathInfoCodec(t *testing.T) {
 		err := daemon.WritePathInfo(enc, info, daemon.ProtocolVersion)
 		rq.NoError(err)
 
-		// ReadPathInfo reads UnkeyedValidPathInfo (no storePath prefix),
-		// but WritePathInfo writes ValidPathInfo (with storePath prefix).
-		// So we need to read the storePath first.
 		dec := wire.NewDecoder(&buf, daemon.MaxStringSize)
 
-		storePath, err := dec.ReadString()
-		rq.NoError(err)
-		rq.Equal("/nix/store/xyz-test", storePath)
-
-		got, err := daemon.ReadPathInfo(dec, storePath, daemon.ProtocolVersion)
+		got, err := daemon.ReadPathInfo(dec, daemon.ProtocolVersion)
 		rq.NoError(err)
 		rq.Equal(info, got)
 	})
@@ -90,6 +84,7 @@ func TestPathInfoCodec(t *testing.T) {
 
 		// Proto 1.15 (0x010f): no ultimate/sigs/ca fields
 		var buf bytes.Buffer
+		writeTestString(&buf, "/nix/store/xyz-test")     // store path
 		writeTestString(&buf, "/nix/store/abc-foo.drv")  // deriver
 		writeTestString(&buf, "sha256:abcdef1234567890") // narHash
 		writeTestUint64(&buf, 1)                         // references count
@@ -100,7 +95,7 @@ func TestPathInfoCodec(t *testing.T) {
 
 		dec := wire.NewDecoder(&buf, daemon.MaxStringSize)
 
-		info, err := daemon.ReadPathInfo(dec, "/nix/store/xyz-test", daemon.ProtoVersion(1, 15))
+		info, err := daemon.ReadPathInfo(dec, daemon.ProtoVersion(1, 15))
 		rq.NoError(err)
 		rq.Equal("/nix/store/xyz-test", info.StorePath)
 		rq.Equal("/nix/store/abc-foo.drv", info.Deriver)
@@ -135,15 +130,8 @@ func TestPathInfoCodec(t *testing.T) {
 		err := daemon.WritePathInfo(enc, info, daemon.ProtoVersion(1, 15))
 		rq.NoError(err)
 
-		// Read back storePath (WritePathInfo writes it as first field)
 		dec := wire.NewDecoder(&buf, daemon.MaxStringSize)
-
-		storePath, err := dec.ReadString()
-		rq.NoError(err)
-		rq.Equal("/nix/store/xyz-test", storePath)
-
-		// Read PathInfo at proto 1.15
-		got, err := daemon.ReadPathInfo(dec, storePath, daemon.ProtoVersion(1, 15))
+		got, err := daemon.ReadPathInfo(dec, daemon.ProtoVersion(1, 15))
 		rq.NoError(err)
 
 		// At proto 1.15: ultimate/sigs/ca are NOT written or read
