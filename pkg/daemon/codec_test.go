@@ -45,15 +45,17 @@ func TestPathInfoCodec(t *testing.T) {
 		rq := require.New(t)
 
 		info := &daemon.PathInfo{
-			StorePath:        "/nix/store/xyz-test",
-			Deriver:          "/nix/store/abc-foo.drv",
-			NarHash:          "sha256:abcdef",
-			References:       []string{"/nix/store/def-bar"},
-			RegistrationTime: 1700000000,
-			NarSize:          54321,
-			Ultimate:         true,
-			Sigs:             []string{"sig1"},
-			CA:               "",
+			StorePath: "/nix/store/xyz-test",
+			UnkeyedPathInfo: daemon.UnkeyedPathInfo{
+				Deriver:          "/nix/store/abc-foo.drv",
+				NarHash:          "sha256:abcdef",
+				References:       []string{"/nix/store/def-bar"},
+				RegistrationTime: 1700000000,
+				NarSize:          54321,
+				Ultimate:         true,
+				Sigs:             []string{"sig1"},
+				CA:               "",
+			},
 		}
 
 		var buf bytes.Buffer
@@ -112,15 +114,17 @@ func TestPathInfoCodec(t *testing.T) {
 		rq := require.New(t)
 
 		info := &daemon.PathInfo{
-			StorePath:        "/nix/store/xyz-test",
-			Deriver:          "/nix/store/abc-foo.drv",
-			NarHash:          "sha256:abcdef",
-			References:       []string{"/nix/store/def-bar"},
-			RegistrationTime: 1700000000,
-			NarSize:          54321,
-			Ultimate:         true,               // Set, but should NOT be written at proto 1.15
-			Sigs:             []string{"sig1"},   // Should NOT be written
-			CA:               "fixed:sha256:abc", // Should NOT be written
+			StorePath: "/nix/store/xyz-test",
+			UnkeyedPathInfo: daemon.UnkeyedPathInfo{
+				Deriver:          "/nix/store/abc-foo.drv",
+				NarHash:          "sha256:abcdef",
+				References:       []string{"/nix/store/def-bar"},
+				RegistrationTime: 1700000000,
+				NarSize:          54321,
+				Ultimate:         true,               // Set, but should NOT be written at proto 1.15
+				Sigs:             []string{"sig1"},   // Should NOT be written
+				CA:               "fixed:sha256:abc", // Should NOT be written
+			},
 		}
 
 		var buf bytes.Buffer

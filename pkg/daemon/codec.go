@@ -28,11 +28,7 @@ func readAck(dec *wire.Decoder) error {
 	return nil
 }
 
-func (info *PathInfo) Convert(c wire.Codec) error {
-	if err := c.String(&info.StorePath); err != nil {
-		return err
-	}
-
+func (info *UnkeyedPathInfo) Convert(c wire.Codec) error {
 	if err := c.String(&info.Deriver); err != nil {
 		return err
 	}
@@ -71,10 +67,28 @@ func (info *PathInfo) Convert(c wire.Codec) error {
 	return nil
 }
 
-// ReadPathInfo reads a full PathInfo from the wire (UnkeyedValidPathInfo format).
+func (info *PathInfo) Convert(c wire.Codec) error {
+	if err := c.String(&info.StorePath); err != nil {
+		return err
+	}
+
+	return info.UnkeyedPathInfo.Convert(c)
+}
+
+// ReadPathInfo reads a PathInfo from the wire in ValidPathInfo format
+// (store path followed by UnkeyedValidPathInfo fields).
 // The version parameter is the negotiated protocol version.
 func ReadPathInfo(dec *wire.Decoder, version uint64) (*PathInfo, error) {
 	info := PathInfo{}
+	c := wire.NewDecoderNG(dec.Reader(), MaxStringSize, version)
+	return &info, info.Convert(c)
+}
+
+// ReadUnkeyedPathInfo reads an UnkeyedPathInfo from the wire in UnkeyedValidPathInfo
+// format (no store path; used e.g. by the QueryPathInfo response).
+// The version parameter is the negotiated protocol version.
+func ReadUnkeyedPathInfo(dec *wire.Decoder, version uint64) (*UnkeyedPathInfo, error) {
+	info := UnkeyedPathInfo{}
 	c := wire.NewDecoderNG(dec.Reader(), MaxStringSize, version)
 	return &info, info.Convert(c)
 }

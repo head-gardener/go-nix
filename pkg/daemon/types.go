@@ -210,10 +210,10 @@ const (
 	GCDeleteSpecific GCAction = 3
 )
 
-// PathInfo holds the metadata for a store path, as returned by QueryPathInfo.
-type PathInfo struct {
-	// StorePath is the store path this info describes.
-	StorePath string
+// UnkeyedPathInfo holds the metadata for a store path, without the store path itself.
+// It corresponds to the UnkeyedValidPathInfo wire format shared by all
+// operations that exchange path metadata (QueryPathInfo, AddToStore, ...).
+type UnkeyedPathInfo struct {
 	// Deriver is the store path of the derivation that produced this path, if known.
 	Deriver string
 	// NarHash is the hash of the NAR serialisation of the path contents (e.g. "sha256:...").
@@ -230,6 +230,18 @@ type PathInfo struct {
 	Sigs []string
 	// CA is the content-address of this path, if it is content-addressed.
 	CA string
+}
+
+// PathInfo holds the metadata for a store path, including the store path itself.
+// It corresponds to the ValidPathInfo wire format (used by AddToStoreNar,
+// AddMultipleToStore and AddToStore). Operations that do not transmit the store
+// path on the wire (e.g. QueryPathInfo) return a PathInfo with the store path
+// taken from the operation context.
+type PathInfo struct {
+	// StorePath is the store path this info describes.
+	StorePath string
+	// UnkeyedPathInfo holds the metadata shared with the unkeyed wire format.
+	UnkeyedPathInfo
 }
 
 // BuildResult holds the result of a build operation.
