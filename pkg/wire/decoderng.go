@@ -1,6 +1,9 @@
 package wire
 
-import "io"
+import (
+	"encoding/json"
+	"io"
+)
 
 // DecoderNG reads Nix wire format values from an input stream.
 type DecoderNG struct {
@@ -54,6 +57,16 @@ func (d *DecoderNG) Strings(p *[]string) (err error) {
 func (d *DecoderNG) StringMap(p *map[string]string) (err error) {
 	*p, err = ReadStringMap(d.r, d.maxBytes)
 	return err
+}
+
+// JSON reads a string packet and unmarshals it as JSON into v.
+func (d *DecoderNG) JSON(v any) error {
+	var s string
+	if err := d.String(&s); err != nil {
+		return err
+	}
+
+	return json.Unmarshal([]byte(s), v)
 }
 
 func (d *DecoderNG) Version() uint64 {

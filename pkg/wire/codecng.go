@@ -11,6 +11,7 @@ type Codec interface {
 	String(p *string) error
 	Strings(p *[]string) error
 	StringMap(p *map[string]string) error
+	JSON(v any) error
 	Version() uint64
 }
 

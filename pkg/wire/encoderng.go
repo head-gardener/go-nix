@@ -1,6 +1,9 @@
 package wire
 
-import "io"
+import (
+	"encoding/json"
+	"io"
+)
 
 // EncoderNG writes Nix wire format values to an output stream.
 type EncoderNG struct {
@@ -44,6 +47,17 @@ func (e *EncoderNG) Strings(ss *[]string) error {
 // StringMap writes a map as count + sorted key/value pairs.
 func (e *EncoderNG) StringMap(m *map[string]string) error {
 	return WriteStringMap(e.w, *m)
+}
+
+// JSON marshals v and writes it as a string packet.
+func (e *EncoderNG) JSON(v any) error {
+	buf, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	s := string(buf)
+	return e.String(&s)
 }
 
 // Writer returns the underlying writer.

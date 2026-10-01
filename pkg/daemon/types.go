@@ -2,7 +2,6 @@ package daemon
 
 import (
 	"io"
-	"time"
 )
 
 //go:generate stringer -type=Operation -trimprefix=Op -output=types_stringer_operation.go
@@ -244,6 +243,15 @@ type PathInfo struct {
 	UnkeyedPathInfo
 }
 
+// OptionalMicroseconds represents an optional<microseconds> value.
+// Wire format: tag(uint64: 0=none, 1=some) [+ value(uint64) if tag=1].
+type OptionalMicroseconds struct {
+	// Tag indicates whether the value is present.
+	Tag bool
+	// Microseconds is the value in microseconds, if Tag is set.
+	Microseconds uint64
+}
+
 // BuildResult holds the result of a build operation.
 type BuildResult struct {
 	// Status is the outcome of the build.
@@ -258,10 +266,12 @@ type BuildResult struct {
 	StartTime uint64
 	// StopTime is the Unix timestamp when the build finished.
 	StopTime uint64
-	// CpuUser is the user CPU time consumed by the build, if available (protocol >= 1.37).
-	CpuUser *time.Duration
-	// CpuSystem is the system CPU time consumed by the build, if available (protocol >= 1.37).
-	CpuSystem *time.Duration
+	// CpuUser is the user CPU time consumed by the build (protocol >= 1.37).
+	// Tag is false if the daemon did not report a value.
+	CpuUser OptionalMicroseconds
+	// CpuSystem is the system CPU time consumed by the build (protocol >= 1.37).
+	// Tag is false if the daemon did not report a value.
+	CpuSystem OptionalMicroseconds
 	// BuiltOutputs maps output names to their realisations.
 	BuiltOutputs map[string]Realisation
 }

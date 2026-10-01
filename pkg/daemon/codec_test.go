@@ -3,7 +3,6 @@ package daemon_test
 import (
 	"bytes"
 	"testing"
-	"time"
 
 	"github.com/nix-community/go-nix/pkg/daemon"
 	"github.com/nix-community/go-nix/pkg/wire"
@@ -408,8 +407,8 @@ func TestBuildResultCodec(t *testing.T) {
 		rq.False(result.IsNonDeterministic)
 		rq.Equal(uint64(1700000000), result.StartTime)
 		rq.Equal(uint64(1700000060), result.StopTime)
-		rq.Nil(result.CpuUser)
-		rq.Nil(result.CpuSystem)
+		rq.False(result.CpuUser.Tag)
+		rq.False(result.CpuSystem.Tag)
 		rq.Len(result.BuiltOutputs, 1)
 
 		realisation := result.BuiltOutputs["out"]
@@ -440,8 +439,8 @@ func TestBuildResultCodec(t *testing.T) {
 		rq.NoError(err)
 		rq.Equal(daemon.BuildStatusPermanentFailure, result.Status)
 		rq.Equal("build failed", result.ErrorMsg)
-		rq.Nil(result.CpuUser)
-		rq.Nil(result.CpuSystem)
+		rq.False(result.CpuUser.Tag)
+		rq.False(result.CpuSystem.Tag)
 		rq.Empty(result.BuiltOutputs)
 	})
 
@@ -472,9 +471,9 @@ func TestBuildResultCodec(t *testing.T) {
 		rq.Equal(uint64(1700000000), result.StartTime)
 		rq.Equal(uint64(1700000060), result.StopTime)
 
-		expectedCpuUser := 500 * time.Millisecond
-		rq.Equal(&expectedCpuUser, result.CpuUser)
-		rq.Nil(result.CpuSystem)
+		rq.True(result.CpuUser.Tag)
+		rq.Equal(uint64(500000), result.CpuUser.Microseconds)
+		rq.False(result.CpuSystem.Tag)
 
 		rq.Empty(result.BuiltOutputs)
 		rq.Equal(0, buf.Len())
@@ -511,11 +510,10 @@ func TestBuildResultCodec(t *testing.T) {
 		rq.Equal(daemon.BuildStatusBuilt, result.Status)
 		rq.Equal(uint64(2), result.TimesBuilt)
 
-		expectedCpuUser := time.Second
-		expectedCpuSystem := 250 * time.Millisecond
-
-		rq.Equal(&expectedCpuUser, result.CpuUser)
-		rq.Equal(&expectedCpuSystem, result.CpuSystem)
+		rq.True(result.CpuUser.Tag)
+		rq.Equal(uint64(1000000), result.CpuUser.Microseconds)
+		rq.True(result.CpuSystem.Tag)
+		rq.Equal(uint64(250000), result.CpuSystem.Microseconds)
 
 		rq.Len(result.BuiltOutputs, 1)
 		rq.Equal("sha256:def456!out", result.BuiltOutputs["out"].ID)
@@ -542,8 +540,8 @@ func TestBuildResultCodec(t *testing.T) {
 
 		result, err := daemon.ReadBuildResult(dec, daemon.ProtoVersion(1, 37))
 		rq.NoError(err)
-		rq.Nil(result.CpuUser)
-		rq.Nil(result.CpuSystem)
+		rq.False(result.CpuUser.Tag)
+		rq.False(result.CpuSystem.Tag)
 		rq.Equal(0, buf.Len())
 	})
 
