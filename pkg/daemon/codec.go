@@ -76,6 +76,7 @@ func (info *PathInfo) Convert(c wire.Codec) error {
 func ReadPathInfo(dec *wire.Decoder, version uint64) (*PathInfo, error) {
 	info := PathInfo{}
 	c := wire.NewDecoderNG(dec.Reader(), MaxStringSize, version)
+
 	return &info, info.Convert(c)
 }
 
@@ -85,6 +86,7 @@ func ReadPathInfo(dec *wire.Decoder, version uint64) (*PathInfo, error) {
 func ReadUnkeyedPathInfo(dec *wire.Decoder, version uint64) (*UnkeyedPathInfo, error) {
 	info := UnkeyedPathInfo{}
 	c := wire.NewDecoderNG(dec.Reader(), MaxStringSize, version)
+
 	return &info, info.Convert(c)
 }
 
@@ -96,6 +98,7 @@ func WritePathInfo(enc *wire.Encoder, info *PathInfo, version uint64) error {
 	}
 
 	c := wire.NewEncoderNG(enc.Writer(), version)
+
 	return info.Convert(c)
 }
 
@@ -162,9 +165,11 @@ func (o *OptionalMicroseconds) Convert(c wire.Codec) error {
 	switch tag {
 	case 0: // none
 		o.Tag = false
+
 		return nil
 	case optionalSome:
 		o.Tag = true
+
 		return c.Uint64(&o.Microseconds)
 	default:
 		return fmt.Errorf("unexpected optional tag %d", tag)
@@ -229,5 +234,6 @@ func (res *BuildResult) Convert(c wire.Codec) error {
 func ReadBuildResult(dec *wire.Decoder, version uint64) (*BuildResult, error) {
 	res := BuildResult{}
 	c := wire.NewDecoderNG(dec.Reader(), MaxStringSize, version)
+
 	return &res, res.Convert(c)
 }

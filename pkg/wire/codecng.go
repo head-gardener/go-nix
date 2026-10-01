@@ -26,7 +26,6 @@ type ConvertiblePtr[T any] interface {
 
 // FIXME: REDO this prob
 
-// ConvertMap is useless
 func ConvertMap[T any, U ConvertiblePtr[T]](c Codec, m *map[string]T) error {
 	n := uint64(len(*m))
 	if err := c.Uint64(&n); err != nil {
@@ -37,6 +36,7 @@ func ConvertMap[T any, U ConvertiblePtr[T]](c Codec, m *map[string]T) error {
 	for k := range *m {
 		keys = append(keys, k)
 	}
+
 	sort.Strings(keys)
 
 	if *m == nil {
@@ -48,18 +48,23 @@ func ConvertMap[T any, U ConvertiblePtr[T]](c Codec, m *map[string]T) error {
 		if int(i) < len(keys) {
 			key = keys[i]
 		}
+
 		if err := c.String(&key); err != nil {
 			return err
 		}
+
 		var v T
 		if existing, ok := (*m)[key]; ok {
 			v = existing
 		}
+
 		var u U = &v
 		if err := u.Convert(c); err != nil {
 			return err
 		}
+
 		(*m)[key] = v
 	}
+
 	return nil
 }

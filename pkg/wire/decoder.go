@@ -51,7 +51,7 @@ func (d *Decoder) Decode(v Unmarshaler) error {
 }
 
 // Reader returns the underlying reader.
-// FIXME: this is needed to convert to ng
+// FIXME: this is needed to convert to ng.
 func (d *Decoder) Reader() io.Reader {
 	return d.r
 }

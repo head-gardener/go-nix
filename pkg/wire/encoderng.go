@@ -57,6 +57,7 @@ func (e *EncoderNG) JSON(v any) error {
 	}
 
 	s := string(buf)
+
 	return e.String(&s)
 }
 

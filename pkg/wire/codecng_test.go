@@ -25,6 +25,7 @@ func TestCodecJSONRoundTrip(t *testing.T) {
 	want := jsonPayload{Name: "out", Count: 42, Tags: []string{"a", "b"}}
 
 	var buf bytes.Buffer
+
 	enc := wire.NewEncoderNG(&buf, 0)
 	rq.NoError(enc.JSON(&want))
 
@@ -39,6 +40,7 @@ func TestCodecJSONInvalid(t *testing.T) {
 	rq := require.New(t)
 
 	var buf bytes.Buffer
+
 	enc := wire.NewEncoderNG(&buf, 0)
 	s := "not valid json {!"
 	rq.NoError(enc.String(&s))
@@ -57,6 +59,7 @@ func TestConvertMapRoundTrip(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
+
 	enc := wire.NewEncoderNG(&buf, 0)
 	rq.NoError(wire.ConvertMap(enc, &want))
 
