@@ -33,7 +33,7 @@ func ConvertMap[T any, U ConvertiblePtr[T]](c Codec, m *map[string]T) error {
 		return err
 	}
 
-	keys := make([]string, 0, n)
+	keys := make([]string, 0, len(*m))
 	for k := range *m {
 		keys = append(keys, k)
 	}
