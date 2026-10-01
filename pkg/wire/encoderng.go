@@ -3,7 +3,7 @@ package wire
 import "io"
 
 // EncoderNG writes Nix wire format values to an output stream.
-type EncoderNG struct{
+type EncoderNG struct {
 	w   io.Writer
 	ver uint64
 }
@@ -11,7 +11,7 @@ type EncoderNG struct{
 // NewEncoderNG returns an EncoderNG that writes to w.
 func NewEncoderNG(w io.Writer, ver uint64) *EncoderNG {
 	return &EncoderNG{
-		w: w,
+		w:   w,
 		ver: ver,
 	}
 }
@@ -51,7 +51,7 @@ func (e *EncoderNG) Writer() io.Writer {
 	return e.w
 }
 
-func (e *EncoderNG) Version() (uint64) {
+func (e *EncoderNG) Version() uint64 {
 	return e.ver
 }
 

@@ -14,9 +14,9 @@ type DecoderNG struct {
 // memory allocation.
 func NewDecoderNG(r io.Reader, maxBytes uint64, ver uint64) *DecoderNG {
 	return &DecoderNG{
-		r: r,
+		r:        r,
 		maxBytes: maxBytes,
-		ver: ver,
+		ver:      ver,
 	}
 }
 
@@ -56,7 +56,6 @@ func (d *DecoderNG) StringMap(p *map[string]string) (err error) {
 	return err
 }
 
-
-func (d *DecoderNG) Version() (uint64) {
+func (d *DecoderNG) Version() uint64 {
 	return d.ver
 }

@@ -11,7 +11,7 @@ type Codec interface {
 	String(p *string) error
 	Strings(p *[]string) error
 	StringMap(p *map[string]string) error
-	Version() (uint64)
+	Version() uint64
 }
 
 type Convertible interface {
@@ -19,47 +19,46 @@ type Convertible interface {
 }
 
 type ConvertiblePtr[T any] interface {
-    *T
-    Convert(c Codec) error
+	*T
+	Convert(c Codec) error
 }
-
 
 // FIXME: REDO this prob
 
 // ConvertMap is useless
 func ConvertMap[T any, U ConvertiblePtr[T]](c Codec, m *map[string]T) error {
-    n := uint64(len(*m))
-    if err := c.Uint64(&n); err != nil {
-        return err
-    }
+	n := uint64(len(*m))
+	if err := c.Uint64(&n); err != nil {
+		return err
+	}
 
-    keys := make([]string, 0, n)
-    for k := range *m {
-        keys = append(keys, k)
-    }
-    sort.Strings(keys)
+	keys := make([]string, 0, n)
+	for k := range *m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
-    if *m == nil {
-        *m = make(map[string]T, n)
-    }
+	if *m == nil {
+		*m = make(map[string]T, n)
+	}
 
-    for i := uint64(0); i < n; i++ {
-        var key string
-        if int(i) < len(keys) {
-            key = keys[i]
-        }
-        if err := c.String(&key); err != nil {
-            return err
-        }
-        var v T
-        if existing, ok := (*m)[key]; ok {
-            v = existing
-        }
-        var u U = &v
-        if err := u.Convert(c); err != nil {
-            return err
-        }
-        (*m)[key] = v
-    }
-    return nil
+	for i := uint64(0); i < n; i++ {
+		var key string
+		if int(i) < len(keys) {
+			key = keys[i]
+		}
+		if err := c.String(&key); err != nil {
+			return err
+		}
+		var v T
+		if existing, ok := (*m)[key]; ok {
+			v = existing
+		}
+		var u U = &v
+		if err := u.Convert(c); err != nil {
+			return err
+		}
+		(*m)[key] = v
+	}
+	return nil
 }
